@@ -1,0 +1,16 @@
+﻿.git
+.gitignore
+.env
+vue-admin/.env
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+media
+staticfiles
+node_modules
+vue-admin/node_modules
+vue-admin/dist
+.DS_Store

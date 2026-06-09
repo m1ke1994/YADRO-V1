@@ -1,0 +1,54 @@
+#!/bin/sh
+set -e
+
+python - <<'PY'
+import os
+import time
+
+import psycopg
+
+host = os.getenv("POSTGRES_HOST", os.getenv("DB_HOST", "postgres"))
+port = int(os.getenv("POSTGRES_PORT", os.getenv("DB_PORT", "5432")))
+user = os.getenv("POSTGRES_USER", os.getenv("DB_USER", "postgres"))
+password = os.getenv("POSTGRES_PASSWORD", os.getenv("DB_PASSWORD", "postgres"))
+dbname = os.getenv("POSTGRES_DB", os.getenv("DB_NAME", "django_db"))
+
+max_attempts = 60
+for attempt in range(1, max_attempts + 1):
+    try:
+        with psycopg.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            dbname=dbname,
+        ):
+            print("PostgreSQL is ready")
+            break
+    except Exception as exc:
+        print(f"Waiting for PostgreSQL ({attempt}/{max_attempts}): {exc}")
+        time.sleep(2)
+else:
+    raise SystemExit("PostgreSQL did not become ready in time")
+PY
+
+if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
+  python manage.py migrate --noinput
+fi
+
+if [ "${RUN_COLLECTSTATIC:-1}" = "1" ]; then
+  python manage.py collectstatic --noinput
+fi
+
+if [ "${RUN_SEED_DEMO_DATA:-1}" = "1" ]; then
+  python manage.py seed_demo_data
+fi
+
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
+
+exec gunicorn config.wsgi:application \
+  --bind :8000 \
+  --workers "${GUNICORN_WORKERS:-3}" \
+  --timeout "${GUNICORN_TIMEOUT:-120}"

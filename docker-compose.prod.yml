@@ -1,0 +1,83 @@
+services:
+  postgres:
+    env_file: !override
+      - .env
+
+  backend:
+    env_file: !override
+      - .env
+    environment:
+      DJANGO_ENV: production
+      DJANGO_ENV_FILE: .env
+      REDIS_URL: ${REDIS_URL}
+    ports: !override []
+
+  celery_worker:
+    env_file: !override
+      - .env
+    environment:
+      DJANGO_ENV: production
+      DJANGO_ENV_FILE: .env
+      REDIS_URL: ${REDIS_URL}
+
+  celery_beat:
+    env_file: !override
+      - .env
+    environment:
+      DJANGO_ENV: production
+      DJANGO_ENV_FILE: .env
+      REDIS_URL: ${REDIS_URL}
+
+  telegram_polling:
+    env_file: !override
+      - .env
+    environment:
+      DJANGO_ENV: production
+      DJANGO_ENV_FILE: .env
+      REDIS_URL: ${REDIS_URL}
+
+  frontend:
+    env_file: !override
+      - ./vue-admin/.env
+    ports: !override []
+    volumes: !override
+      - frontend_dist:/app-dist
+    command: ["sh", "-c", "npm run build && cp -a dist/. /app-dist/ && tail -f /dev/null"]
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app-dist/index.html"]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
+      - ./docker/nginx/templates/proxy_params:/etc/nginx/proxy_params:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+      - frontend_dist:/var/www/frontend:ro
+      - static_data:/var/www/static:ro
+      - media_data:/var/www/media:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --no-check-certificate --header=\"Host: $${DOMAIN}\" -O /dev/null https://nginx/api/health/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - yadro_network
+
+  public_site:
+    env_file: !override
+      - .env
+
+volumes:
+  frontend_dist:
