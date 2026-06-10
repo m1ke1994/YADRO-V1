@@ -15,13 +15,14 @@ import MiniSeoAuditView from '../views/mini/MiniSeoAuditView.vue'
 import MiniReportsView from '../views/mini/MiniReportsView.vue'
 import MiniSettingsView from '../views/mini/MiniSettingsView.vue'
 import MiniIntegrationView from '../views/mini/MiniIntegrationView.vue'
+import { applyRouteSeo } from '../config/seo'
 
 const routes = [
   {
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { guestOnly: true },
+    meta: { guestOnly: true, title: 'Вход' },
   },
   {
     path: '/',
@@ -29,23 +30,23 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', redirect: { name: 'dashboard' } },
-      { path: 'dashboard', name: 'dashboard', component: DashboardView },
-      { path: 'sites/:siteId/overview', name: 'site-overview', component: SiteOverviewView, props: true },
-      { path: 'sites/:siteId/sections', name: 'sections', component: SectionsView, props: true },
-      { path: 'sites/:siteId/analytics', name: 'analytics', component: AnalyticsView, props: true },
-      { path: 'sites/:siteId/leads', name: 'leads', component: LeadsView, props: true },
-      { path: 'sites/:siteId/seo', name: 'site-seo', component: MiniSeoAuditView, props: true },
-      { path: 'sites/:siteId/integration', name: 'site-integration', component: MiniIntegrationView, props: true },
+      { path: 'dashboard', name: 'dashboard', component: DashboardView, meta: { title: 'Панель управления' } },
+      { path: 'sites/:siteId/overview', name: 'site-overview', component: SiteOverviewView, props: true, meta: { title: 'Обзор сайта' } },
+      { path: 'sites/:siteId/sections', name: 'sections', component: SectionsView, props: true, meta: { title: 'Разделы сайта' } },
+      { path: 'sites/:siteId/analytics', name: 'analytics', component: AnalyticsView, props: true, meta: { title: 'Аналитика' } },
+      { path: 'sites/:siteId/leads', name: 'leads', component: LeadsView, props: true, meta: { title: 'Лиды' } },
+      { path: 'sites/:siteId/seo', name: 'site-seo', component: MiniSeoAuditView, props: true, meta: { title: 'SEO-аудит' } },
+      { path: 'sites/:siteId/integration', name: 'site-integration', component: MiniIntegrationView, props: true, meta: { title: 'Интеграция' } },
       {
         path: 'mini',
         component: MiniLayoutView,
         children: [
-          { path: '', name: 'mini-overview', component: MiniOverviewView },
-          { path: 'leads', name: 'mini-leads', component: MiniLeadsView },
-          { path: 'seo', name: 'mini-seo', component: MiniSeoAuditView },
-          { path: 'reports', name: 'mini-reports', component: MiniReportsView },
-          { path: 'settings', name: 'mini-settings', component: MiniSettingsView },
-          { path: 'integration', name: 'mini-integration', component: MiniIntegrationView },
+          { path: '', name: 'mini-overview', component: MiniOverviewView, meta: { title: 'Обзор' } },
+          { path: 'leads', name: 'mini-leads', component: MiniLeadsView, meta: { title: 'Лиды' } },
+          { path: 'seo', name: 'mini-seo', component: MiniSeoAuditView, meta: { title: 'SEO-аудит' } },
+          { path: 'reports', name: 'mini-reports', component: MiniReportsView, meta: { title: 'Отчёты' } },
+          { path: 'settings', name: 'mini-settings', component: MiniSettingsView, meta: { title: 'Настройки' } },
+          { path: 'integration', name: 'mini-integration', component: MiniIntegrationView, meta: { title: 'Интеграция' } },
         ],
       },
       {
@@ -53,6 +54,7 @@ const routes = [
         name: 'section-edit',
         component: SectionEditView,
         props: true,
+        meta: { title: 'Редактирование раздела' },
       },
     ],
   },
@@ -79,6 +81,10 @@ router.beforeEach((to) => {
   }
 
   return true
+})
+
+router.afterEach((to) => {
+  applyRouteSeo(to)
 })
 
 export default router

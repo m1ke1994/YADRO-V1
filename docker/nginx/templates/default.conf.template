@@ -93,6 +93,28 @@ server {
         add_header Cache-Control "public";
     }
 
+    location /assets/ {
+        root /var/www/frontend;
+        try_files $uri =404;
+        access_log off;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location = /robots.txt {
+        root /var/www/frontend;
+        try_files $uri =404;
+        access_log off;
+        expires 1h;
+    }
+
+    location = /sitemap.xml {
+        root /var/www/frontend;
+        try_files $uri =404;
+        access_log off;
+        expires 1h;
+    }
+
     location / {
         root /var/www/frontend;
         try_files $uri $uri/ /index.html;

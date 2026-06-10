@@ -9,6 +9,7 @@ services:
     environment:
       DJANGO_ENV: production
       DJANGO_ENV_FILE: .env
+      DJANGO_SERVE_MEDIA_FILES: "0"
       REDIS_URL: ${REDIS_URL}
     ports: !override []
 
