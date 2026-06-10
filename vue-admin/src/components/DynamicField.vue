@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 
 import { uploadMediaFile } from '../api/media'
 import { BACKEND_URL } from '../config/env'
+import MediaLibraryPicker from './MediaLibraryPicker.vue'
 
 defineOptions({ name: 'DynamicField' })
 
@@ -53,6 +54,7 @@ const acceptedMediaTypes = computed(() => {
 const fileInputRef = ref(null)
 const uploading = ref(false)
 const uploadError = ref('')
+const libraryOpen = ref(false)
 
 const apiBaseUrl = computed(() => {
   const explicit = props.uploadContext?.apiBaseUrl
@@ -127,6 +129,17 @@ function clearMedia() {
 function openUploadDialog() {
   uploadError.value = ''
   fileInputRef.value?.click()
+}
+
+function selectFromLibrary(item) {
+  emit('update:modelValue', item?.path || item?.url || '')
+  libraryOpen.value = false
+}
+
+function onLibraryItemDeleted(item) {
+  if ((item?.path || item?.url || '') === mediaValue.value) {
+    clearMedia()
+  }
 }
 
 async function onFileSelected(event) {
@@ -293,6 +306,14 @@ function updateRepeaterCell(index, key, value) {
             <div class="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
+                class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                :disabled="uploading"
+                @click="libraryOpen = true"
+              >
+                Выбрать из библиотеки
+              </button>
+              <button
+                type="button"
                 class="rounded-lg border border-brand-200 bg-white px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50"
                 :disabled="uploading"
                 @click="openUploadDialog"
@@ -311,17 +332,30 @@ function updateRepeaterCell(index, key, value) {
           </div>
         </div>
 
-        <button
-          v-else
-          type="button"
-          class="action-button-secondary"
-          :disabled="uploading"
-          @click="openUploadDialog"
-        >
-          {{ uploading ? 'Загрузка...' : uploadActionLabel }}
-        </button>
+        <div v-else class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="action-button-secondary"
+            :disabled="uploading"
+            @click="openUploadDialog"
+          >
+            {{ uploading ? 'Загрузка...' : uploadActionLabel }}
+          </button>
+          <button type="button" class="action-button-secondary" :disabled="uploading" @click="libraryOpen = true">
+            Выбрать из библиотеки
+          </button>
+        </div>
 
         <p v-if="uploadError" class="text-xs text-rose-600">{{ uploadError }}</p>
+
+        <MediaLibraryPicker
+          v-if="libraryOpen"
+          :site-id="uploadContext?.siteId || uploadContext?.siteSlug"
+          :media-type="mediaType"
+          @close="libraryOpen = false"
+          @select="selectFromLibrary"
+          @deleted="onLibraryItemDeleted"
+        />
       </div>
     </template>
 

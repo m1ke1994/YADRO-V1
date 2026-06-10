@@ -1,10 +1,10 @@
 from django.urls import path
 
-from .views import ClientMediaDeleteView, ClientMediaListView, ClientMediaUploadView, UploadFileView
+from .views import ClientMediaDetailView, ClientMediaListView, ClientMediaUploadView, UploadFileView
 
 urlpatterns = [
     path("", ClientMediaListView.as_view(), name="client-media-list"),
     path("upload/", ClientMediaUploadView.as_view(), name="client-media-upload"),
-    path("<int:id>/", ClientMediaDeleteView.as_view(), name="client-media-delete"),
+    path("<int:id>/", ClientMediaDetailView.as_view(), name="client-media-detail"),
     path("uploads/", UploadFileView.as_view(), name="client-media-upload-alias"),
 ]

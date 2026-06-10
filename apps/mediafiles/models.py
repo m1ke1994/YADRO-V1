@@ -1,4 +1,5 @@
 ﻿import mimetypes
+import hashlib
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -9,7 +10,7 @@ from django.utils.text import slugify
 
 from apps.sites.models import Site
 
-ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "mp4", "webm"}
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "svg", "gif", "avif", "mp4", "webm"}
 
 
 def _build_upload_path(instance, filename):
@@ -37,21 +38,30 @@ class MediaFile(models.Model):
     file = models.FileField(upload_to=_build_upload_path, verbose_name="Файл")
     file_type = models.CharField(max_length=50, blank=True, verbose_name="Тип файла")
     title = models.CharField(max_length=255, blank=True, verbose_name="Название")
-    alt = models.CharField(max_length=255, blank=True, verbose_name="Alt-текст")
+    alt_text = models.CharField(max_length=255, blank=True, verbose_name="Alt-текст")
     description = models.TextField(blank=True, verbose_name="Описание")
     size = models.PositiveIntegerField(default=0, verbose_name="Размер (байт)")
     mime_type = models.CharField(max_length=255, blank=True, verbose_name="MIME-тип")
-    created_at = models.DateTimeField(auto_now_add=True)
+    checksum_sha256 = models.CharField(max_length=64, blank=True, db_index=True, verbose_name="SHA-256")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="uploaded_media_files",
+        verbose_name="Загрузил",
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Загружено")
 
     class Meta:
         verbose_name = "Медиафайл"
         verbose_name_plural = "Медиафайлы"
-        ordering = ["-created_at"]
+        ordering = ["-uploaded_at"]
         constraints = [
             models.UniqueConstraint(
                 fields=("site", "section_key", "field_key", "original_name"),
                 name="unique_site_section_field_original_media",
-            )
+            ),
         ]
 
     def __str__(self):
@@ -92,6 +102,26 @@ class MediaFile(models.Model):
             else:
                 self.file_type = "file"
 
+    def _calculate_checksum(self):
+        if not self.file:
+            return ""
+
+        digest = hashlib.sha256()
+        was_closed = getattr(self.file, "closed", True)
+        if was_closed:
+            self.file.open("rb")
+
+        try:
+            self.file.seek(0)
+            for chunk in self.file.chunks():
+                digest.update(chunk)
+            self.file.seek(0)
+        finally:
+            if was_closed:
+                self.file.close()
+
+        return digest.hexdigest()
+
     def get_absolute_url(self):
         if not self.file:
             return ""
@@ -118,4 +148,6 @@ class MediaFile(models.Model):
         if self.file and not self.original_name:
             self.original_name = Path(self.file.name).name
         self._detect_metadata()
+        if self.file and not self.checksum_sha256:
+            self.checksum_sha256 = self._calculate_checksum()
         super().save(*args, **kwargs)

@@ -16,11 +16,22 @@ class MediaFileAdmin(admin.ModelAdmin):
         "file_type",
         "mime_type",
         "size",
-        "created_at",
+        "uploaded_by",
+        "uploaded_at",
     )
-    list_filter = ("site", "section_key", "field_key", "file_type", "mime_type", "created_at")
-    search_fields = ("title", "alt", "description", "file", "original_name", "site__name", "section_key", "field_key")
-    readonly_fields = ("preview", "size", "mime_type", "file_type", "created_at")
+    list_filter = ("site", "section_key", "field_key", "file_type", "mime_type", "uploaded_at")
+    search_fields = (
+        "title",
+        "alt_text",
+        "description",
+        "file",
+        "original_name",
+        "site__name",
+        "section_key",
+        "field_key",
+        "checksum_sha256",
+    )
+    readonly_fields = ("preview", "size", "mime_type", "file_type", "checksum_sha256", "uploaded_at")
 
     @admin.display(description="Preview")
     def preview(self, obj):

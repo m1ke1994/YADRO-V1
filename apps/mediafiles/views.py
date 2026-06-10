@@ -1,6 +1,7 @@
 ﻿from django.db.models import QuerySet
+from django.db.models import Q
 from rest_framework import generics
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 
@@ -13,21 +14,55 @@ from .serializers import MediaFileSerializer
 class ClientMediaAccessMixin:
     permission_classes = [IsAuthenticated]
 
-    def get_client_site(self) -> Site:
-        site = Site.objects.filter(owner=self.request.user, is_active=True).order_by("id").first()
+    def get_accessible_sites(self) -> QuerySet[Site]:
+        queryset = Site.objects.filter(is_active=True)
+        if self.request.user.is_superuser:
+            return queryset
+        return queryset.filter(owner=self.request.user)
+
+    def resolve_site(self, requested=None) -> Site:
+        queryset = self.get_accessible_sites()
+        if requested not in (None, ""):
+            lookup = Q(slug=str(requested))
+            if str(requested).isdigit():
+                lookup |= Q(id=int(requested))
+            site = queryset.filter(lookup).first()
+        else:
+            site = queryset.order_by("id").first()
+
         if site is None:
             raise NotFound(detail="Active site for current user was not found.")
         return site
 
+    def get_client_site(self) -> Site:
+        return self.resolve_site()
+
     def get_queryset(self) -> QuerySet[MediaFile]:
-        return MediaFile.objects.filter(site=self.get_client_site()).select_related("site")
+        return MediaFile.objects.filter(site__in=self.get_accessible_sites()).select_related("site", "uploaded_by")
 
 
 class ClientMediaListView(ClientMediaAccessMixin, generics.ListAPIView):
     serializer_class = MediaFileSerializer
 
     def get_queryset(self) -> QuerySet[MediaFile]:
-        return super().get_queryset().order_by("-created_at")
+        queryset = super().get_queryset()
+        site = self.request.query_params.get("site")
+        file_type = self.request.query_params.get("file_type")
+        search = self.request.query_params.get("search")
+
+        if site:
+            queryset = queryset.filter(site=self.resolve_site(site))
+        if file_type:
+            queryset = queryset.filter(file_type=file_type)
+        if search:
+            queryset = queryset.filter(
+                Q(original_name__icontains=search)
+                | Q(title__icontains=search)
+                | Q(alt_text__icontains=search)
+                | Q(description__icontains=search)
+            )
+
+        return queryset.order_by("-uploaded_at")
 
 
 class ClientMediaUploadView(ClientMediaAccessMixin, generics.CreateAPIView):
@@ -35,24 +70,7 @@ class ClientMediaUploadView(ClientMediaAccessMixin, generics.CreateAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def _resolve_site(self):
-        requested = self.request.data.get("site")
-        base_queryset = Site.objects.filter(is_active=True)
-
-        if requested in (None, ""):
-            return self.get_client_site()
-
-        site = None
-        if str(requested).isdigit():
-            site = base_queryset.filter(id=int(requested)).first()
-        if site is None:
-            site = base_queryset.filter(slug=str(requested)).first()
-        if site is None:
-            raise NotFound(detail="Site was not found.")
-
-        if not self.request.user.is_superuser and site.owner_id != self.request.user.id:
-            raise PermissionDenied(detail="You do not have access to this site.")
-
-        return site
+        return self.resolve_site(self.request.data.get("site"))
 
     def perform_create(self, serializer):
         site = self._resolve_site()
@@ -78,12 +96,14 @@ class ClientMediaUploadView(ClientMediaAccessMixin, generics.CreateAPIView):
             section_key=section_key,
             field_key=field_key,
             original_name=original_name,
+            uploaded_by=self.request.user,
         )
 
 
-class ClientMediaDeleteView(ClientMediaAccessMixin, generics.DestroyAPIView):
+class ClientMediaDetailView(ClientMediaAccessMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MediaFileSerializer
     lookup_field = "id"
+    http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def perform_destroy(self, instance):
         storage = instance.file.storage

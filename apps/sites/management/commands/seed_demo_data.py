@@ -707,7 +707,7 @@ class Command(BaseCommand):
             defaults={
                 "file": relative_name,
                 "title": source.stem,
-                "alt": source.stem,
+                "alt_text": source.stem,
                 "description": f"{section_key}:{field_key}",
                 "file_type": file_type,
                 "mime_type": mime_type,
