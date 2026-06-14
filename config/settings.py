@@ -41,15 +41,17 @@ def required_env(key, aliases=()):
     return value
 
 
-def production_url(key, default=""):
-    value = env(key, default).rstrip("/")
+def public_url(key, default="", aliases=()):
+    value = env(key, default, aliases=aliases).rstrip("/")
     if not IS_PRODUCTION:
         return value
     parsed = urlparse(value)
-    if parsed.scheme != "https" or not parsed.hostname:
-        raise ImproperlyConfigured(f"{key} must be an absolute HTTPS URL in production")
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ImproperlyConfigured(f"{key} must be an absolute HTTP(S) URL in production")
     if parsed.hostname in {"localhost", "127.0.0.1", "0.0.0.0"}:
         raise ImproperlyConfigured(f"{key} cannot use a local address in production")
+    if REQUIRE_HTTPS and parsed.scheme != "https":
+        raise ImproperlyConfigured(f"{key} must use HTTPS when DJANGO_REQUIRE_HTTPS=true")
     return value
 
 
@@ -59,6 +61,7 @@ SECRET_KEY = (
     else env("DJANGO_SECRET_KEY", "local-development-only", aliases=("SECRET_KEY",))
 )
 DEBUG = env_bool("DJANGO_DEBUG", not IS_PRODUCTION)
+REQUIRE_HTTPS = env_bool("DJANGO_REQUIRE_HTTPS", IS_PRODUCTION)
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", IS_PRODUCTION)
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", IS_PRODUCTION)
 CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", IS_PRODUCTION)
@@ -275,6 +278,7 @@ CORS_ALLOWED_ORIGINS = env_csv(
     "CORS_ALLOWED_ORIGINS",
     "" if IS_PRODUCTION else ",".join(DEFAULT_CORS_ORIGINS),
 )
+CORS_ALLOWED_ORIGIN_REGEXES = env_csv("CORS_ALLOWED_ORIGIN_REGEXES", "")
 CORS_ALLOW_CREDENTIALS = True
 if IS_PRODUCTION and CORS_ALLOW_ALL_ORIGINS:
     raise ImproperlyConfigured("CORS_ALLOW_ALL_ORIGINS must be false in production")
@@ -293,11 +297,19 @@ CSRF_TRUSTED_ORIGINS = env_csv(
 DOMAIN = required_env("DOMAIN") if IS_PRODUCTION else env("DOMAIN", "localhost")
 if IS_PRODUCTION and DOMAIN in {"localhost", "127.0.0.1", "0.0.0.0"}:
     raise ImproperlyConfigured("DOMAIN cannot use a local address in production")
-SITE_BASE_URL = production_url("SITE_BASE_URL", "http://localhost:8000")
-PUBLIC_BASE_URL = production_url("PUBLIC_BASE_URL", SITE_BASE_URL)
-FRONTEND_URL = production_url("FRONTEND_URL", SITE_BASE_URL)
-API_URL = production_url("API_URL", f"{SITE_BASE_URL}/api")
-ADMIN_URL = production_url("ADMIN_URL", f"{SITE_BASE_URL}/admin")
+SITE_BASE_URL = public_url(
+    "SITE_BASE_URL",
+    "http://localhost:8000",
+    aliases=("BACKEND_URL", "SITE_URL"),
+)
+PUBLIC_BASE_URL = public_url(
+    "PUBLIC_BASE_URL",
+    SITE_BASE_URL,
+    aliases=("PUBLIC_SITE_URL",),
+)
+FRONTEND_URL = public_url("FRONTEND_URL", SITE_BASE_URL)
+API_URL = public_url("API_URL", f"{SITE_BASE_URL}/api")
+ADMIN_URL = public_url("ADMIN_URL", f"{SITE_BASE_URL}/admin")
 SEO_AUDIT_USER_AGENT = env(
     "SEO_AUDIT_USER_AGENT",
     f"TrackNode SEO Audit/1.0 (+{SITE_BASE_URL})",
@@ -306,11 +318,27 @@ if IS_PRODUCTION:
     invalid_origins = [
         origin
         for origin in (*CORS_ALLOWED_ORIGINS, *CSRF_TRUSTED_ORIGINS)
-        if urlparse(origin).scheme != "https"
+        if urlparse(origin).scheme not in {"http", "https"}
         or urlparse(origin).hostname in {"localhost", "127.0.0.1", "0.0.0.0", None}
+        or (REQUIRE_HTTPS and urlparse(origin).scheme != "https")
     ]
     if invalid_origins:
-        raise ImproperlyConfigured("CORS and CSRF origins must use public HTTPS URLs in production")
+        raise ImproperlyConfigured(
+            "CORS and CSRF origins must use public HTTP(S) URLs matching DJANGO_REQUIRE_HTTPS"
+        )
+    has_local_cors_regex = any(
+        local in regex
+        for regex in CORS_ALLOWED_ORIGIN_REGEXES
+        for local in ("localhost", "127.0.0.1")
+    )
+    if has_local_cors_regex:
+        raise ImproperlyConfigured("CORS_ALLOWED_ORIGIN_REGEXES cannot contain local addresses in production")
+    if urlparse(SITE_BASE_URL).scheme == "http" and (
+        SECURE_SSL_REDIRECT or SESSION_COOKIE_SECURE or CSRF_COOKIE_SECURE
+    ):
+        raise ImproperlyConfigured(
+            "HTTP production URLs require SSL redirect and secure cookies to be disabled"
+        )
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", "").lstrip("@")
 TELEGRAM_WEBHOOK_SECRET = env("TELEGRAM_WEBHOOK_SECRET", "")

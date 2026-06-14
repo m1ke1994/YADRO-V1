@@ -5,7 +5,7 @@ import { ArrowLeft, ExternalLink, RotateCcw, Save } from '@lucide/vue'
 
 import DynamicForm from '../components/DynamicForm.vue'
 import SectionSidebar from '../components/SectionSidebar.vue'
-import { BACKEND_URL } from '../config/env'
+import { BACKEND_URL, toPublicUrl } from '../config/env'
 import { useSectionsStore } from '../stores/sections'
 import { useSiteStore } from '../stores/site'
 import { getSectionLabel } from '../utils/sectionLabels'
@@ -33,8 +33,7 @@ const uploadContext = computed(() => ({
 }))
 const previewUrl = computed(() => {
   const domain = String(siteStore.currentSite?.domain || '').trim().replace(/\/+$/, '')
-  if (!domain) return ''
-  return /^https?:\/\//i.test(domain) ? domain : `http://${domain}`
+  return toPublicUrl(domain)
 })
 
 function clone(value) {

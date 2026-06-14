@@ -533,7 +533,7 @@ A_MEDITATION_SECTION_SEEDS = [
             "address": "Москва, ул. Ботаническая, 33В стр 1",
             "contacts_label": "Телефон / Telegram:",
             "phone": "+7 903 198-91-88",
-            "email": "admin@test.ru",
+            "email": "",
             "telegram": "@leelabirdcase",
             "format_label": "Формат:",
             "format_text": "индивидуально, парами или в группе",

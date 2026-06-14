@@ -505,7 +505,7 @@ SECTION_SEEDS = [
             "subtitle": "Свяжитесь для записи",
             "description": "Напишите или позвоните, чтобы подобрать удобный формат практики.",
             "phone": "+7 903 198-91-88",
-            "email": "admin@test.ru",
+            "email": "",
             "telegram": "@leelabirdcase",
             "address": "Москва, ул. Ботаническая, 33В стр 1",
             "locations": [
@@ -582,11 +582,13 @@ class Command(BaseCommand):
         self.stdout.write(f"admin={user.email}")
 
     def _upsert_admin_user(self):
-        email = os.getenv("SUPERUSER_EMAIL", "admin@test.ru")
-        password = os.getenv("SUPERUSER_PASSWORD")
-        if not password:
-            raise CommandError("SUPERUSER_PASSWORD must be set before running seed_demo_data")
-        username = os.getenv("SUPERUSER_USERNAME", "admin")
+        email = os.getenv("SUPERUSER_EMAIL", "").strip().lower()
+        password = os.getenv("SUPERUSER_PASSWORD", "")
+        username = os.getenv("SUPERUSER_USERNAME", "").strip() or email
+        if not email or not password:
+            raise CommandError(
+                "SUPERUSER_EMAIL and SUPERUSER_PASSWORD must be set before running seed_demo_data"
+            )
 
         user_model = get_user_model()
         user = user_model.objects.filter(email__iexact=email).order_by("id").first()

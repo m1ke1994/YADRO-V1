@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ExternalLink, LogOut, Menu } from '@lucide/vue'
 
 import { useAuthStore } from '../stores/auth'
+import { toPublicUrl } from '../config/env'
 import { useSectionsStore } from '../stores/sections'
 import { useSiteStore } from '../stores/site'
 
@@ -19,8 +20,7 @@ const canOpenSite = computed(() => Boolean(siteStore.currentSite?.domain))
 function openPublicSite() {
   const domain = siteStore.currentSite?.domain
   if (!domain) return
-  const normalized = domain.startsWith('http://') || domain.startsWith('https://') ? domain : `http://${domain}`
-  window.open(normalized, '_blank', 'noopener,noreferrer')
+  window.open(toPublicUrl(domain), '_blank', 'noopener,noreferrer')
 }
 
 function logout() {

@@ -7,9 +7,6 @@ from django.db import transaction
 from apps.sites.models import Site
 from clients.models import Client
 
-TARGET_EMAIL = os.environ["AMEDIA_OWNER_EMAIL"]
-TARGET_PASSWORD = os.environ["AMEDIA_OWNER_PASSWORD"]
-TARGET_USERNAME = os.environ["AMEDIA_OWNER_USERNAME"]
 TARGET_SITE_NAME = "A Meditation / Амедиа"
 TARGET_SITE_SLUG = "a-meditation"
 TARGET_SITE_DOMAIN = os.getenv("AMEDIA_SITE_DOMAIN", "localhost")
@@ -20,6 +17,14 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        self.target_email = os.getenv("AMEDIA_OWNER_EMAIL", "").strip().lower()
+        self.target_password = os.getenv("AMEDIA_OWNER_PASSWORD", "")
+        self.target_username = os.getenv("AMEDIA_OWNER_USERNAME", "").strip() or self.target_email
+        if not self.target_email or not self.target_password:
+            raise CommandError(
+                "AMEDIA_OWNER_EMAIL and AMEDIA_OWNER_PASSWORD must be set before running seed_amedia_owner"
+            )
+
         user = self._upsert_user()
         client = self._upsert_client(user=user)
         site = self._upsert_site(user=user)
@@ -34,23 +39,23 @@ class Command(BaseCommand):
 
     def _upsert_user(self):
         user_model = get_user_model()
-        user = user_model.objects.filter(email=TARGET_EMAIL).first()
+        user = user_model.objects.filter(email=self.target_email).first()
         if user is None:
-            user = user_model.objects.filter(username=TARGET_USERNAME).first()
+            user = user_model.objects.filter(username=self.target_username).first()
 
         if user is None:
             user = user_model.objects.create_user(
-                username=TARGET_USERNAME,
-                email=TARGET_EMAIL,
-                password=TARGET_PASSWORD,
+                username=self.target_username,
+                email=self.target_email,
+                password=self.target_password,
             )
 
         changed = False
-        if user.email != TARGET_EMAIL:
-            user.email = TARGET_EMAIL
+        if user.email != self.target_email:
+            user.email = self.target_email
             changed = True
-        if user.username != TARGET_USERNAME:
-            user.username = TARGET_USERNAME
+        if user.username != self.target_username:
+            user.username = self.target_username
             changed = True
         if not user.is_active:
             user.is_active = True
@@ -61,8 +66,8 @@ class Command(BaseCommand):
         if user.is_superuser:
             user.is_superuser = False
             changed = True
-        if not user.check_password(TARGET_PASSWORD):
-            user.set_password(TARGET_PASSWORD)
+        if not user.check_password(self.target_password):
+            user.set_password(self.target_password)
             changed = True
 
         if changed:

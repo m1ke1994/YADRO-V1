@@ -15,7 +15,7 @@ docker compose exec backend python manage.py migrate
 ## 2. Запуск Vue Admin
 
 - [ ] Открыть `http://localhost:8001`.
-- [ ] Проверить авторизацию пользователя `amedia@test.ru / test-test`.
+- [ ] Проверить авторизацию с учётными данными из `AMEDIA_OWNER_EMAIL` и `AMEDIA_OWNER_PASSWORD`.
 
 ## 3. Запуск публичного сайта
 

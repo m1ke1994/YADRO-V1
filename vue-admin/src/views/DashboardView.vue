@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ArrowRight, ExternalLink, Globe2 } from '@lucide/vue'
 
 import { useAuthStore } from '../stores/auth'
+import { toPublicUrl } from '../config/env'
 import { useSectionsStore } from '../stores/sections'
 import { useSiteStore } from '../stores/site'
 
@@ -19,8 +20,7 @@ function openSite(siteId) {
 }
 
 function publicSiteUrl(domain) {
-  if (!domain) return ''
-  return domain.startsWith('http://') || domain.startsWith('https://') ? domain : `http://${domain}`
+  return toPublicUrl(domain)
 }
 
 onMounted(async () => {

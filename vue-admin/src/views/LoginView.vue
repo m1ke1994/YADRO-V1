@@ -10,8 +10,8 @@ const authStore = useAuthStore()
 const siteStore = useSiteStore()
 
 const form = reactive({
-  email: 'admin@test.ru',
-  password: 'testtest',
+  email: '',
+  password: '',
 })
 
 const loading = ref(false)
@@ -57,7 +57,6 @@ async function submit() {
             type="email"
             autocomplete="email"
             class="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-            placeholder="admin@test.ru"
           >
         </div>
 

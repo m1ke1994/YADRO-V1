@@ -17,6 +17,7 @@ npm run dev
 - `VITE_API_URL` — API с префиксом `/api`
 - `VITE_BACKEND_URL` — origin backend для media и абсолютных URL
 - `VITE_SITE_URL` — публичный URL frontend
+- `VITE_PUBLIC_SITE_URL` — предпочтительный публичный URL для canonical и внешних ссылок
 - `VITE_API_BASE_URL` — совместимый alias старой конфигурации
 
 Production-сборка использует `vue-admin/.env`:
@@ -28,9 +29,10 @@ npm run build
 Production-значения для TrackNode:
 
 ```env
-VITE_API_URL=https://tracknode.ru/api
-VITE_BACKEND_URL=https://tracknode.ru
-VITE_SITE_URL=https://tracknode.ru
+VITE_API_URL=http://95.31.22.162/api
+VITE_BACKEND_URL=http://95.31.22.162
+VITE_SITE_URL=http://95.31.22.162
+VITE_PUBLIC_SITE_URL=http://95.31.22.162
 ```
 
 Локальная проверка сборки:

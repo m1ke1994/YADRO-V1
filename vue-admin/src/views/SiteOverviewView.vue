@@ -6,6 +6,7 @@ import { BarChart3, Blocks, ExternalLink, Inbox, SearchCheck, Send } from '@luci
 import { getSiteAnalyticsSummaryRequest } from '../api/analytics'
 import { getSiteTelegramRequest } from '../api/site'
 import DashboardStats from '../components/DashboardStats.vue'
+import { toPublicUrl } from '../config/env'
 import { useSiteStore } from '../stores/site'
 
 const route = useRoute()
@@ -35,7 +36,7 @@ const actions = computed(() => [
 function openPublicSite() {
   const domain = siteStore.currentSite?.domain
   if (!domain) return
-  window.open(domain.startsWith('http') ? domain : `http://${domain}`, '_blank', 'noopener,noreferrer')
+  window.open(toPublicUrl(domain), '_blank', 'noopener,noreferrer')
 }
 
 async function load() {

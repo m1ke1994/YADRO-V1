@@ -7,4 +7,4 @@ Disallow: /login
 Disallow: /sites/
 Disallow: /mini
 
-Sitemap: https://tracknode.ru/sitemap.xml
+Sitemap: http://localhost:5173/sitemap.xml

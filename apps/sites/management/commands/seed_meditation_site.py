@@ -3,14 +3,10 @@
 import os
 
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.sites.models import SectionSchema, Site, SiteSection
-
-USER_EMAIL = os.environ["MEDITATION_USER_EMAIL"]
-USER_PASSWORD = os.environ["MEDITATION_USER_PASSWORD"]
-USER_USERNAME = os.environ["MEDITATION_USER_USERNAME"]
 
 SITE_DATA = {
     "name": "Сайт медитации",
@@ -234,7 +230,7 @@ SECTION_SEEDS = [
         "content": {
             "title": "Контакты и запись",
             "phone": "+7 903 198-91-88",
-            "email": "test@test.ru",
+            "email": "",
             "telegram": "@leelabirdcase",
             "address": "Москва, ул. Ботаническая, 33В стр 1",
         },
@@ -273,31 +269,39 @@ class Command(BaseCommand):
     help = "Create or update demo meditation site with sections and test user."
 
     def handle(self, *args, **options):
+        self.user_email = os.getenv("MEDITATION_USER_EMAIL", "").strip().lower()
+        self.user_password = os.getenv("MEDITATION_USER_PASSWORD", "")
+        self.user_username = os.getenv("MEDITATION_USER_USERNAME", "").strip() or self.user_email
+        if not self.user_email or not self.user_password:
+            raise CommandError(
+                "MEDITATION_USER_EMAIL and MEDITATION_USER_PASSWORD must be set before running seed_meditation_site"
+            )
+
         with transaction.atomic():
             user = self._upsert_user()
             site = self._upsert_site(user)
             created_count, updated_count = self._upsert_sections(site)
 
         self.stdout.write(self.style.SUCCESS("Seed completed."))
-        self.stdout.write(f"User: {USER_EMAIL}")
-        self.stdout.write("Password: test-test")
+        self.stdout.write(f"User: {self.user_email}")
+        self.stdout.write("Password configured from MEDITATION_USER_PASSWORD")
         self.stdout.write(f"Site: {site.slug} ({site.domain})")
         self.stdout.write(f"Sections created: {created_count}, updated: {updated_count}")
 
     def _upsert_user(self):
         user_model = get_user_model()
         user, created = user_model.objects.get_or_create(
-            email=USER_EMAIL,
-            defaults={"username": USER_USERNAME},
+            email=self.user_email,
+            defaults={"username": self.user_username},
         )
 
         changed = False
-        if user.username != USER_USERNAME:
-            user.username = USER_USERNAME
+        if user.username != self.user_username:
+            user.username = self.user_username
             changed = True
 
-        if not user.check_password(USER_PASSWORD):
-            user.set_password(USER_PASSWORD)
+        if not user.check_password(self.user_password):
+            user.set_password(self.user_password)
             changed = True
 
         if created or changed:

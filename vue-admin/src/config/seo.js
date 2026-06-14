@@ -1,8 +1,9 @@
+import { SITE_URL } from './env'
+
 const SITE_NAME = import.meta.env.VITE_SITE_NAME || 'TrackNode'
 const SITE_DESCRIPTION =
   import.meta.env.VITE_SITE_DESCRIPTION ||
   'TrackNode объединяет аналитику сайтов, лиды, SEO-аудит и отчёты в одном кабинете.'
-const SITE_URL = (import.meta.env.VITE_SITE_URL || window.location.origin).replace(/\/+$/, '')
 const OG_IMAGE_URL = import.meta.env.VITE_OG_IMAGE_URL || `${SITE_URL}/og-image.svg`
 
 function setMeta(selector, attribute, value) {

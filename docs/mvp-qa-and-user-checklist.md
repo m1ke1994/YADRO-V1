@@ -12,8 +12,8 @@
   - Vue Admin: `cd vue-admin && npm run dev`
 
 Тестовые данные:
-- Email: `amedia@test.ru`
-- Пароль: `test-test`
+- Email: значение `AMEDIA_OWNER_EMAIL`
+- Пароль: значение `AMEDIA_OWNER_PASSWORD`
 - Сайт: `A Meditation / Амедиа`
 
 ## 2. QA Чек-лист (ручная проверка в браузере)
@@ -21,7 +21,7 @@
 ### 2.1 Авторизация и доступ к сайту
 
 - [ ] Открыть Vue Admin: `http://localhost:5173/login`
-- [ ] Войти под `amedia@test.ru / test-test`
+- [ ] Войти с учётными данными из `AMEDIA_OWNER_EMAIL` и `AMEDIA_OWNER_PASSWORD`
 - [ ] Пользователь видит только 1 сайт: `A Meditation / Амедиа`
 - [ ] Ошибка `Client dashboard access is available only for active client users.` не появляется
 
@@ -115,4 +115,3 @@
 - [ ] Установить `ENABLE_BILLING=true`
 - [ ] Проверить, что при неактивной подписке закрываются только платные функции
 - [ ] Проверить, что при активной подписке доступ восстанавливается
-
